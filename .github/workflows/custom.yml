@@ -80,7 +80,7 @@ jobs:
 
       - name: Run custom script
         run: |
-          build_args="--archive --cn-scale-factor=0.8,1.0"
+          build_args="--archive"
           echo "BUILD_ARGS=$build_args" >> $GITHUB_ENV
           python build.py $build_args
         continue-on-error: true
