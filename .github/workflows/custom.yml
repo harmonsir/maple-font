@@ -36,7 +36,7 @@ on:
       build_args:
         description: 'Other args for build.py'
         required: false
-        default: ''
+        default: '--cn --no-nf --no-liga --normal --no-hinted --ttf-only'
         type: string
 
 permissions:
@@ -48,10 +48,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -59,7 +59,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install -q -r requirements.txt
 
           # https://github.com/ryanoasis/nerd-fonts/blob/b3c1b0cf424ac32915cf4fd822c3938d4a815566/.github/workflows/release.yml#L144-L166
           if [[ "${{ github.event.inputs.build_args }}" == *"--font-patcher"* ]] || python build.py --dry | jq -e '.nerd_font.use_font_patcher == true' >/dev/null; then
@@ -81,21 +81,6 @@ jobs:
       - name: Run custom script
         run: |
           build_args="--archive"
-          if [ "${{ github.event.inputs.cn }}" == "true" ]; then
-            build_args="$build_args --cn"
-          fi
-          if [ "${{ github.event.inputs.normal }}" == "true" ]; then
-            build_args="$build_args --normal"
-          fi
-          if [ "${{ github.event.inputs.no_liga }}" == "true" ]; then
-            build_args="$build_args --no-liga"
-          fi
-          if [ "${{ github.event.inputs.no_hinted }}" == "true" ]; then
-            build_args="$build_args --no-hinted"
-          fi
-          if [ "${{ github.event.inputs.nf_mono }}" == "true" ]; then
-            build_args="$build_args --nf-mono"
-          fi
           if [ -n "${{ github.event.inputs.feat }}" ]; then
             build_args="$build_args --feat ${{ github.event.inputs.feat }}"
           fi

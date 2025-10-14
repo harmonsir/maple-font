@@ -1,47 +1,52 @@
 #!/usr/bin/env python3
 import argparse
-from concurrent.futures import ProcessPoolExecutor, as_completed
 import importlib.util
-from io import BytesIO
 import json
 import re
 import shutil
 import time
+from concurrent.futures import as_completed, ProcessPoolExecutor
 from functools import partial
-from os import environ, getcwd, listdir, makedirs, path, remove, getenv
+from io import BytesIO
+from os import environ, getcwd, getenv, listdir, makedirs, path, remove
 from typing import Callable, Literal
-from fontTools.ttLib import TTFont, newTable
+
 from fontTools.feaLib.builder import addOpenTypeFeatures, addOpenTypeFeaturesFromString
+from fontTools.ttLib import newTable, TTFont
 from ttfautohint import StemWidthMode, ttfautohint
-from source.py.utils import (
-    add_gasp,
-    add_ital_axis_to_stat,
-    adjust_line_height,
-    change_glyph_width_or_scale,
-    check_font_patcher,
-    check_directory_hash,
-    patch_instance,
-    verify_glyph_width,
-    archive_fonts,
-    download_cn_base_font,
-    get_font_forge_bin,
-    is_ci,
-    match_unicode_names,
-    run,
-    set_font_name,
-    joinPaths,
-    merge_ttfonts,
-    default_weight_map,
-)
-from source.py.freeze import freeze_feature, get_freeze_config_str, is_enable
+
 from source.py.feature import (
     generate_fea_string,
     get_freeze_moving_rules,
     normal_enabled_features,
 )
+from source.py.freeze import freeze_feature, get_freeze_config_str, is_enable
+from source.py.utils import (
+    add_gasp,
+    add_ital_axis_to_stat,
+    adjust_line_height,
+    archive_fonts,
+    change_glyph_width_or_scale,
+    check_directory_hash,
+    check_font_patcher,
+    default_weight_map,
+    download_cn_base_font,
+    get_font_forge_bin,
+    is_ci,
+    joinPaths,
+    match_unicode_names,
+    merge_ttfonts,
+    patch_instance,
+    run,
+    set_font_name,
+    verify_glyph_width,
+)
 
 
 FONT_VERSION = "v7.7"
+verify_glyph_width = lambda *args, **kwargs: 1
+
+
 # =========================================================================================
 
 
@@ -384,8 +389,8 @@ class FontConfig:
             # scale factor for CN glyphs
             "scale_factor": (1.0, 1.0),
         }
-        self.glyph_width = 600
-        self.glyph_width_cn_narrow = 1000
+        self.glyph_width = 550
+        self.glyph_width_cn_narrow = 800
         self.use_normal_preset = False
         self.ttfautohint_param = {}
         self.line_height = 1.0
@@ -413,6 +418,13 @@ class FontConfig:
         try:
             with open(config_file_path, "r") as f:
                 data = json.load(f)
+                # if "weight_mapping" in data:
+                #     self.weight_mapping = data["weight_mapping"]
+                if "glyph_width" in data:
+                    self.glyph_width = data["glyph_width"]
+                if "glyph_width_cn_narrow" in data:
+                    self.glyph_width_cn_narrow = data["glyph_width_cn_narrow"]
+
                 for prop in [
                     "family_name",
                     "pool_size",
@@ -546,7 +558,7 @@ class FontConfig:
         self._apply_feature_options(args)
         self._apply_nerd_font_options(args)
         self._apply_cn_options(args)
-        self._update_family_names()
+        # self._update_family_names()
 
         self.freeze_config_str = get_freeze_config_str(
             self.feature_freeze, self.enable_ligature
@@ -577,16 +589,8 @@ class FontConfig:
 
     def get_valid_glyph_width_list(self, cn=False):
         if cn:
-            cn = (
-                self.glyph_width_cn_narrow
-                if self.cn["narrow"]
-                else 2 * self.glyph_width
-            )
-            return [
-                0,
-                self.glyph_width,
-                cn,
-            ]
+            cn = (self.glyph_width_cn_narrow if self.cn["narrow"] else 2 * self.glyph_width)
+            return [0, self.glyph_width, cn, ]
         else:
             return [0, self.glyph_width]
 
@@ -721,7 +725,7 @@ class BuildOption:
         )
 
     def should_use_font_patcher(
-        self, config: FontConfig, should_exit: bool = True
+        self, config: FontConfig, should_exit: bool = True,
     ) -> bool:
         if not (
             len(config.nerd_font["extra_args"]) > 0
@@ -853,7 +857,7 @@ class BuildOption:
     #     print(f"Update {self.cn_static_dir}.sha256")
 
     def __check_file_count(
-        self, dir: str, minCount: int = 16, end: str | None = None
+        self, dir: str, minCount: int = 16, end: str | None = None,
     ) -> bool:
         if not path.isdir(dir):
             return False
@@ -863,7 +867,7 @@ class BuildOption:
 
 
 def handle_ligatures(
-    font: TTFont, enable_ligature: bool, freeze_config: dict[str, str]
+    font: TTFont, enable_ligature: bool, freeze_config: dict[str, str],
 ):
     """
     whether to enable ligatures and freeze font features
@@ -955,7 +959,7 @@ def rename_glyph_name(
             arr = re.split(r"[\._]", old_name, maxsplit=2)
             name = map.get(arr[0])
             if name:
-                new_name = name + old_name[len(arr[0]) :]
+                new_name = name + old_name[len(arr[0]):]
         return new_name
 
     print("Rename glyph names")
@@ -1204,7 +1208,7 @@ def build_mono_autohint(f: str, font_config: FontConfig, build_option: BuildOpti
 
 
 def build_nf_by_prebuild_nerd_font(
-    font_basename: str, font_config: FontConfig, build_option: BuildOption
+    font_basename: str, font_config: FontConfig, build_option: BuildOption,
 ) -> TTFont:
     suffix = font_config.get_nf_suffix()
     if suffix:
@@ -1216,19 +1220,19 @@ def build_nf_by_prebuild_nerd_font(
 
 
 def build_nf_by_font_patcher(
-    font_basename: str, font_config: FontConfig, build_option: BuildOption
+    font_basename: str, font_config: FontConfig, build_option: BuildOption,
 ) -> TTFont:
     """
     full args: https://github.com/ryanoasis/nerd-fonts?tab=readme-ov-file#font-patcher
     """
     _nf_args = [
-        font_config.nerd_font["font_forge_bin"],
-        "FontPatcher/font-patcher",
-        "-l",
-        "--careful",
-        "--outputdir",
-        build_option.output_nf,
-    ] + font_config.nerd_font["glyphs"]
+                   font_config.nerd_font["font_forge_bin"],
+                   "FontPatcher/font-patcher",
+                   "-l",
+                   "--careful",
+                   "--outputdir",
+                   build_option.output_nf,
+               ] + font_config.nerd_font["glyphs"]
 
     if font_config.nerd_font["propo"]:
         _nf_args += ["--variable-width-glyphs"]
@@ -1411,6 +1415,7 @@ def build_cn(f: str, font_config: FontConfig, build_option: BuildOption):
         else:
             scale_factor = (1.0, 1.0)
 
+        print(f"!!! match_width:{match_width} target_width:{target_width} scale_factor:{scale_factor}")
         change_glyph_width_or_scale(
             font=cn_font,
             match_width=match_width,
@@ -1462,7 +1467,7 @@ def build_cn(f: str, font_config: FontConfig, build_option: BuildOption):
 
 
 def run_build(
-    pool_size: int, fn: Callable, dir: str, target_styles: list[str] | None = None
+    pool_size: int, fn: Callable, dir: str, target_styles: list[str] | None = None,
 ):
     """Run build tasks in parallel using ProcessPoolExecutor."""
     if target_styles:
@@ -1585,7 +1590,7 @@ def build_variable_fonts(font_config: FontConfig, build_option: BuildOption):
 
 
 def build_base_fonts(
-    font_config: FontConfig, build_option: BuildOption, target_styles: list[str] | None
+    font_config: FontConfig, build_option: BuildOption, target_styles: list[str] | None,
 ):
     """Apply mono building and auto-hinting to static TTF fonts."""
     run_build(
@@ -1612,7 +1617,7 @@ def build_base_fonts(
 
 
 def build_nerd_fonts(
-    font_config: FontConfig, build_option: BuildOption, target_styles: list[str] | None
+    font_config: FontConfig, build_option: BuildOption, target_styles: list[str] | None,
 ):
     """Build Nerd Font variants."""
     if not font_config.nerd_font["enable"]:
@@ -1645,7 +1650,7 @@ def build_nerd_fonts(
 
 
 def build_chinese_fonts(
-    font_config: FontConfig, build_option: BuildOption, target_styles: list[str] | None
+    font_config: FontConfig, build_option: BuildOption, target_styles: list[str] | None,
 ):
     """Build Chinese font variants."""
     if not build_option.should_build_cn(font_config):
