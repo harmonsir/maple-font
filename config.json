@@ -1,9 +1,9 @@
 {
   "$schema": "./source/schema.json",
   "family_name": "Maple Mono",
-  "use_hinted": true,
+  "use_hinted": false,
   "pool_size": 4,
-  "enable_ligature": true,
+  "enable_ligature": false,
   "ttfautohint_param": {},
   "weight_mapping": {
     "thin": 100,
@@ -65,7 +65,7 @@
     "zero": "ignore"
   },
   "nerd_font": {
-    "enable": true,
+    "enable": false,
     "version": "3.4.0",
     "mono": false,
     "propo": false,
@@ -76,8 +76,8 @@
     "extra_args": []
   },
   "cn": {
-    "enable": false,
-    "with_nerd_font": true,
+    "enable": true,
+    "with_nerd_font": false,
     "fix_meta_table": true,
     "clean_cache": false,
     "narrow": false,
