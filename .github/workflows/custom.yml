@@ -91,7 +91,7 @@ jobs:
           fi
 
           echo "BUILD_ARGS=$build_args" >> $GITHUB_ENV
-          python build.py $build_args
+          python build.py $build_args --cn --no-nf --no-liga --normal --no-hinted --ttf-only --cn-narrow
         continue-on-error: true
       - id: check_issue
         name: Check issue feature file

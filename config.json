@@ -72,7 +72,7 @@
     "extra_args": []
   },
   "cn": {
-    "enable": true,
+    "enable": false,
     "with_nerd_font": false,
     "fix_meta_table": true,
     "clean_cache": false,

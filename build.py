@@ -693,7 +693,7 @@ class BuildOption:
         #
         # same as `ftcli assistant commit . --ls 400 700`
         # https://github.com/ftCLI/FoundryTools-CLI/issues/166#issuecomment-2095756721
-        self.base_subfamily_list = ["Regular", "Bold", "Italic", "BoldItalic"]
+        self.base_subfamily_list = ["Regular", "Italic"]
         self.is_nf_built = False
         self.is_cn_built = False
         self.has_cache = (
