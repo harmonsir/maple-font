@@ -1415,7 +1415,13 @@ def build_cn(f: str, font_config: FontConfig, build_option: BuildOption):
         else:
             scale_factor = (1.0, 1.0)
 
-        print(f"!!! match_width:{match_width} target_width:{target_width} scale_factor:{scale_factor}")
+        new_target_width = font_config.glyph_width_cn_narrow
+        print(
+            f"!!! match_width:{match_width} "
+            f"target_width:{target_width}(new: {new_target_width}) "
+            f"scale_factor:{scale_factor}"
+        )
+        target_width = new_target_width
         change_glyph_width_or_scale(
             font=cn_font,
             match_width=match_width,
