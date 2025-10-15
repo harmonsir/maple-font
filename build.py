@@ -385,7 +385,7 @@ class FontConfig:
             # whether to hint CN font (will increase about 33% size)
             "use_hinted": False,
             # whether to use pre-instantiated static CN font as base font
-            "use_static_base_font": True,  # Deprecated. Always `True`
+            "use_static_base_font": False,  # Deprecated. Always `True`
             # scale factor for CN glyphs
             "scale_factor": (1.0, 1.0),
         }
